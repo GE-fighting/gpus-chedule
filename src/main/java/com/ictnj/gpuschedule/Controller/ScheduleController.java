@@ -16,6 +16,7 @@ import com.ictnj.gpuschedule.mapper.RecordMapper;
 import com.ictnj.gpuschedule.mapper.TaskEntityMapper;
 import com.ictnj.gpuschedule.service.FIFOService;
 import com.ictnj.gpuschedule.service.PoissonArrivalService;
+import com.ictnj.gpuschedule.service.ScheduleService;
 import com.ictnj.gpuschedule.service.ScheduleServiceDACO;
 import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +65,7 @@ public class ScheduleController {
 
 
     @RequestMapping("/FIFO")
-    public void sheduleFIFO() {
+    public void scheduleFIFO() {
         List<TaskEntity> taskEntities = taskEntityMapper.selectList(null);
         if (taskEntities == null) {
             PoissonArrivalService poissonArrivalService = new PoissonArrivalService(50);
@@ -127,7 +128,7 @@ public class ScheduleController {
      * @Param []
      **/
     @RequestMapping("/DACO")
-    public void sheduleDACO() {
+    public void scheduleDACO() {
         List<TaskEntity> taskEntities = taskEntityMapper.selectList(null);
         if (taskEntities == null) {
             PoissonArrivalService poissonArrivalService = new PoissonArrivalService(50);
@@ -190,6 +191,70 @@ public class ScheduleController {
 
     }
 
+
+    @RequestMapping("/ACO")
+    public void scheduleACO(){
+        List<TaskEntity> taskEntities = taskEntityMapper.selectList(null);
+        if (taskEntities == null) {
+            PoissonArrivalService poissonArrivalService = new PoissonArrivalService(50);
+            //随机产生任务存入数据库
+            for (int i = 0; i < 50; i++) {
+                double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
+                TaskEntity entity = new TaskEntity();
+                entity.setArriveTime(nextArrivalTime);
+                entity.setRunTime(new Random().nextInt(10) * 10 + 5);
+                entity.setDeadLine(5 * i + new Random().nextInt(50));
+                entity.setGpuNum(1 + new Random().nextInt(4));
+                taskEntityMapper.insert(entity);
+            }
+        }
+
+        getHostInfo();
+
+        LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
+
+        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByAsc(TaskEntity::getArriveTime)).stream().map(taskEntity -> {
+            Task task = new Task();
+            task.setId(taskEntity.getId());
+            task.setRunTime(taskEntity.getRunTime());
+            task.setGpuNum(taskEntity.getGpuNum());
+            task.setDeadLine(taskEntity.getDeadLine());
+            return task;
+        }).collect(Collectors.toList());
+        double[][] pheromone = new double[tasks.size()][hosts.size()];
+        for (int i = 0; i < tasks.size(); i++) {
+            for (int j = 0; j < hosts.size(); j++) {
+                pheromone[i][j] = 1.0;
+            }
+        }
+
+        ScheduleService scheduleService = new ScheduleService(10, hosts.size(), tasks.size(), pheromone, tasks, hosts);
+        ResultData schedule = scheduleService.getSchedule();
+        HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
+        for (int hostId : result.keySet()) {
+            System.out.println("物理机Index-" + hostId);
+            HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
+            for (int gpuId : gpuTaskList.keySet()) {
+                System.out.println("GPU  Index - " + gpuId);
+                List<Task> taskList = gpuTaskList.get(gpuId);
+                System.out.println("Task NUm is -" + taskList.size());
+                for (Task task : taskList) {
+                    //System.out.println("任务编号是 - " + task.getId());
+                    Record record = new Record();
+                    record.setGpuId(gpuId);
+                    record.setHostId(hostId);
+                    record.setTaskId(task.getId());
+                    record.setTaskStartTime(task.getStartTime());
+                    record.setTaskDeadLine(task.getDeadLine());
+                    record.setTaskFinishTime(task.getFinishTime());
+                    record.setTaskGpuNum(task.getGpuNum());
+                    record.setTaskRunTime(task.getRunTime());
+                    recordMapper.insert(record);
+                }
+            }
+        }
+
+    }
 
     /**
      * @return
