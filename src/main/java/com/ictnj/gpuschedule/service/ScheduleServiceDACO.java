@@ -35,11 +35,11 @@ public class ScheduleServiceDACO {
     private double beta = 5.0; // beta参数
     private double rho = 0.1; //
     private double Q = 0.5; // 目标函数最大，全局信息素增量
-    private double q = 0.25;// 任务在截止时间内完成，局部信息素增量
+    private double q =5;// 任务在截止时间内完成，局部信息素增量
     private double initPheromone = 0.1; // 初始信息素浓度
-    private int maxIterations = 100;
+    private int maxIterations = 10;
     private double w = 0.5;// 多目标函数中目标结果比例
-
+    private  static int  timePeriod = 800;
     private HashMap<Integer, HashMap<Integer, ResultData>> result = new HashMap<Integer, HashMap<Integer, ResultData>>();
 
     public ScheduleServiceDACO(int numAnts, int numHosts, int numTasks, double[][] pheromone, List<Task> tasks, List<Host> hosts) {
@@ -112,12 +112,13 @@ public class ScheduleServiceDACO {
         for (Host host : hosts) {
             //拿到分配给该物理机的任务数据
             List<Task> assignedTasks = host.getAssignedTasks();
+            System.out.println("----------------分配给物理机的任务数——————————————————"+assignedTasks.size());
             //数据加进结果集中
             hostTask.put(host.getId(), assignedTasks);
             //二维填箱处理
             Instance instance = new Instance();
             instance.setH(1.0 * 10 * host.getGpus().size());
-            instance.setW(1.0 * 360);
+            instance.setW(1.0 * timePeriod);
             List<Item> items = new ArrayList<>();
             for (Task task : assignedTasks) {
                 Item item = new Item(String.valueOf(task.getId()), task.getRunTime(), task.getGpuNum() * 10);
@@ -130,6 +131,7 @@ public class ScheduleServiceDACO {
             // 调用蚁群算法对象进行求解
             Solution solution = aco.solve();
             List<PlaceItem> placeItemList = solution.getPlaceItemList();
+            System.out.println("----------------装箱结果下的任务——————————————————"+placeItemList.size());
             int finishedNumAfterDeadline = 0;
             int maxFinishTime = 0;
             // 记录一个物理机上的GPU的分配列表
@@ -184,7 +186,7 @@ public class ScheduleServiceDACO {
             }
         }
         //   计算此次蚂蚁的QOS和最短完成时间，得到多目标函数
-        double fitness = w * 360 / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
+        double fitness = w * timePeriod / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
         //将实验的目标函数值存入
         data.setFitness(fitness);
         data.setHostTask(hostTask);

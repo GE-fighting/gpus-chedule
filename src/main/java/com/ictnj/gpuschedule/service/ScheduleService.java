@@ -324,8 +324,10 @@ public class ScheduleService {
     private double Q = 0.5; // 目标函数最大，全局信息素增量
     private double q = 0.25;// 任务在截止时间内完成，局部信息素增量
     private double initPheromone = 0.1; // 初始信息素浓度
-    private int maxIterations = 100;
+    private int maxIterations = 10;
     private double w = 0.5;// 多目标函数中目标结果比例
+
+    private  static int  timePeriod = 1080;
 
     private HashMap<Integer, HashMap<Integer, ResultData>> result = new HashMap<Integer, HashMap<Integer, ResultData>>();
 
@@ -404,7 +406,7 @@ public class ScheduleService {
             //二维填箱处理
             Instance instance = new Instance();
             instance.setH(1.0 * 10 * host.getGpus().size());
-            instance.setW(1.0 * 360);
+            instance.setW(1.0 * timePeriod);
             List<Item> items = new ArrayList<>();
             for (Task task : assignedTasks) {
                 Item item = new Item(String.valueOf(task.getId()), task.getRunTime(), task.getGpuNum() * 10);
@@ -471,7 +473,7 @@ public class ScheduleService {
             }
         }
         //   计算此次蚂蚁的QOS和最短完成时间，得到多目标函数
-        double fitness = w * 360 / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
+        double fitness = w * timePeriod / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
         //将实验的目标函数值存入
         data.setFitness(fitness);
         data.setHostTask(hostTask);

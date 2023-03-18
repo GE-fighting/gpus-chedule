@@ -64,22 +64,9 @@ public class ScheduleController {
     private List<Host> hosts = new ArrayList<>();
 
 
-    @RequestMapping("/FIFO")
+    @RequestMapping("/FCFS")
     public void scheduleFIFO() {
-        List<TaskEntity> taskEntities = taskEntityMapper.selectList(null);
-        if (taskEntities == null) {
-            PoissonArrivalService poissonArrivalService = new PoissonArrivalService(50);
-            //随机产生任务存入数据库
-            for (int i = 0; i < 50; i++) {
-                double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
-                TaskEntity entity = new TaskEntity();
-                entity.setArriveTime(nextArrivalTime);
-                entity.setRunTime(new Random().nextInt(10) * 10 + 5);
-                entity.setDeadLine(5 * i + new Random().nextInt(50));
-                entity.setGpuNum(1 + new Random().nextInt(4));
-                taskEntityMapper.insert(entity);
-            }
-        }
+        insertTask();
         getHostInfo();
 
         LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
@@ -95,6 +82,8 @@ public class ScheduleController {
         FIFOService fifoService = new FIFOService(hosts, tasks);
         ResultData schedule = fifoService.getSchedule();
         HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
+        //记录任务的Q
+        HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
         for (int hostId : result.keySet()) {
             System.out.println("物理机Index-" + hostId);
             HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
@@ -114,9 +103,15 @@ public class ScheduleController {
                     record.setTaskGpuNum(task.getGpuNum());
                     record.setTaskRunTime(task.getRunTime());
                     recordMapper.insert(record);
+                    if (task.getDeadLine() > task.getFinishTime()) {
+                        //    如果任务在截止时间前完成
+                        resultQosRecord.put(task.getId(), 1);
+                    }
                 }
             }
         }
+        //   计算截止日期前的任务数量
+        System.out.println("任务的总数量：" + tasks.size() + " 截止日期前完成的任务数量：" + resultQosRecord.keySet().size());
     }
 
 
@@ -129,20 +124,7 @@ public class ScheduleController {
      **/
     @RequestMapping("/DACO")
     public void scheduleDACO() {
-        List<TaskEntity> taskEntities = taskEntityMapper.selectList(null);
-        if (taskEntities == null) {
-            PoissonArrivalService poissonArrivalService = new PoissonArrivalService(50);
-            //随机产生任务存入数据库
-            for (int i = 0; i < 50; i++) {
-                double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
-                TaskEntity entity = new TaskEntity();
-                entity.setArriveTime(nextArrivalTime);
-                entity.setRunTime(new Random().nextInt(10) * 10 + 5);
-                entity.setDeadLine(5 * i + new Random().nextInt(50));
-                entity.setGpuNum(1 + new Random().nextInt(4));
-                taskEntityMapper.insert(entity);
-            }
-        }
+        insertTask();
 
         getHostInfo();
 
@@ -166,6 +148,7 @@ public class ScheduleController {
         ScheduleServiceDACO scheduleService = new ScheduleServiceDACO(10, hosts.size(), tasks.size(), pheromone, tasks, hosts);
         ResultData schedule = scheduleService.getSchedule();
         HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
+        HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
         for (int hostId : result.keySet()) {
             System.out.println("物理机Index-" + hostId);
             HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
@@ -185,29 +168,22 @@ public class ScheduleController {
                     record.setTaskGpuNum(task.getGpuNum());
                     record.setTaskRunTime(task.getRunTime());
                     recordMapper.insert(record);
+                    if (task.getDeadLine() > task.getFinishTime()) {
+                        //    如果任务在截止时间前完成
+                        resultQosRecord.put(task.getId(), 1);
+                    }
                 }
             }
         }
+        //   计算截止日期前的任务数量
+        System.out.println("任务的总数量：" + tasks.size() + " 截止日期前完成的任务数量：" + resultQosRecord.keySet().size());
 
     }
 
 
     @RequestMapping("/ACO")
-    public void scheduleACO(){
-        List<TaskEntity> taskEntities = taskEntityMapper.selectList(null);
-        if (taskEntities == null) {
-            PoissonArrivalService poissonArrivalService = new PoissonArrivalService(50);
-            //随机产生任务存入数据库
-            for (int i = 0; i < 50; i++) {
-                double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
-                TaskEntity entity = new TaskEntity();
-                entity.setArriveTime(nextArrivalTime);
-                entity.setRunTime(new Random().nextInt(10) * 10 + 5);
-                entity.setDeadLine(5 * i + new Random().nextInt(50));
-                entity.setGpuNum(1 + new Random().nextInt(4));
-                taskEntityMapper.insert(entity);
-            }
-        }
+    public void scheduleACO() {
+        insertTask();
 
         getHostInfo();
 
@@ -231,6 +207,7 @@ public class ScheduleController {
         ScheduleService scheduleService = new ScheduleService(10, hosts.size(), tasks.size(), pheromone, tasks, hosts);
         ResultData schedule = scheduleService.getSchedule();
         HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
+        HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
         for (int hostId : result.keySet()) {
             System.out.println("物理机Index-" + hostId);
             HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
@@ -250,10 +227,16 @@ public class ScheduleController {
                     record.setTaskGpuNum(task.getGpuNum());
                     record.setTaskRunTime(task.getRunTime());
                     recordMapper.insert(record);
+                    if (task.getDeadLine() > task.getFinishTime()) {
+                        //    如果任务在截止时间前完成
+                        resultQosRecord.put(task.getId(), 1);
+                    }
                 }
             }
         }
 
+        //   计算截止日期前的任务数量
+        System.out.println("任务的总数量：" + tasks.size() + " 截止日期前完成的任务数量：" + resultQosRecord.keySet().size());
     }
 
     /**
@@ -350,4 +333,22 @@ public class ScheduleController {
         }
     }
 
+
+    //随机插入任务
+    public void insertTask() {
+        List<TaskEntity> taskEntities = taskEntityMapper.selectList(null);
+        if (taskEntities.size() == 0) {
+            PoissonArrivalService poissonArrivalService = new PoissonArrivalService(150);
+            //随机产生任务存入数据库
+            for (int i = 0; i < 100; i++) {
+                double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
+                TaskEntity entity = new TaskEntity();
+                entity.setArriveTime(nextArrivalTime);
+                entity.setRunTime(new Random().nextInt(10) * 10 + 5);
+                entity.setGpuNum(1 + new Random().nextInt(4));
+                entity.setDeadLine((int) (entity.getRunTime() + entity.getArriveTime() + entity.getGpuNum() * 100));
+                taskEntityMapper.insert(entity);
+            }
+        }
+    }
 }
