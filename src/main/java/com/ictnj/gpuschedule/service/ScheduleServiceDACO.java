@@ -9,7 +9,9 @@ import com.ictnj.gpuschedule.entity.Item;
 import com.ictnj.gpuschedule.entity.PlaceItem;
 import com.ictnj.gpuschedule.entity.Solution;
 import com.ictnj.gpuschedule.model.heu.aco.ACO;
+import org.springframework.data.redis.core.RedisTemplate;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,19 +30,20 @@ public class ScheduleServiceDACO {
     private double[][] pheromone; // 信息素浓度矩阵，每行表示一个任务在所有host上的信息素浓度
     private List<Host> hosts;
     private List<Task> tasks; // 任务列表
-    private List<List<Integer>> antPaths; // 蚂蚁路径列表
 
 
-    private double alpha = 1.0; // alpha参数
+
+    private double alpha = 0.5; // alpha参数
     private double beta = 5.0; // beta参数
     private double rho = 0.1; //
     private double Q = 0.5; // 目标函数最大，全局信息素增量
-    private double q =5;// 任务在截止时间内完成，局部信息素增量
+    private double q = 0.5;// 任务在截止时间内完成，局部信息素增量
     private double initPheromone = 0.1; // 初始信息素浓度
     private int maxIterations = 10;
     private double w = 0.5;// 多目标函数中目标结果比例
-    private  static int  timePeriod = 800;
+    private static int timePeriod = 800;
     private HashMap<Integer, HashMap<Integer, ResultData>> result = new HashMap<Integer, HashMap<Integer, ResultData>>();
+
 
     public ScheduleServiceDACO(int numAnts, int numHosts, int numTasks, double[][] pheromone, List<Task> tasks, List<Host> hosts) {
         this.numAnts = numAnts;
@@ -75,6 +78,7 @@ public class ScheduleServiceDACO {
                 //   利用结合天际线启发式的蚁群算法将物理机上的GPU卡合适分配给任务，并返回任务的QOS以及最短完成时间
                 double v = assignGpuToTask(i, antCount);
                 if (v > maxFitness) {
+
                     maxFitness = v;
                     maxAntIndex = antCount;
                 }
@@ -88,6 +92,8 @@ public class ScheduleServiceDACO {
         }
         //TODO  找到最后一次迭代中多目标函数最大的蚂蚁路径
         return getMaxFitnessPath(result.get(maxIterations - 1));
+
+
 
     }
 
@@ -112,7 +118,7 @@ public class ScheduleServiceDACO {
         for (Host host : hosts) {
             //拿到分配给该物理机的任务数据
             List<Task> assignedTasks = host.getAssignedTasks();
-            System.out.println("----------------分配给物理机的任务数——————————————————"+assignedTasks.size());
+            System.out.println("----------------分配给物理机的任务数——————————————————" + assignedTasks.size());
             //数据加进结果集中
             hostTask.put(host.getId(), assignedTasks);
             //二维填箱处理
@@ -131,7 +137,7 @@ public class ScheduleServiceDACO {
             // 调用蚁群算法对象进行求解
             Solution solution = aco.solve();
             List<PlaceItem> placeItemList = solution.getPlaceItemList();
-            System.out.println("----------------装箱结果下的任务——————————————————"+placeItemList.size());
+            System.out.println("----------------装箱结果下的任务——————————————————" + placeItemList.size());
             int finishedNumAfterDeadline = 0;
             int maxFinishTime = 0;
             // 记录一个物理机上的GPU的分配列表
@@ -214,6 +220,9 @@ public class ScheduleServiceDACO {
 
     //给任务分配具体的物理机
     public int assignOneTask(int taskId) {
+        if (taskId==90){
+            System.out.println("-----------");
+        }
         //定义任务去这些物理机上的概率
         double[] probabilities = new double[numHosts];
         //可能性总和是0
@@ -235,6 +244,7 @@ public class ScheduleServiceDACO {
                 return j;
             }
         }
+        System.out.println("taskId-"+taskId);
         return -1;
     }
 
@@ -246,7 +256,7 @@ public class ScheduleServiceDACO {
         //2、拿到启发式信息（a、物理机上的面积布局 b、任务的deadline）
         double hostWorkLoad = getHostWorkLoad(j);
         //3、计算概率并返回
-        double prob = Math.pow(p, alpha) * (1.0 / hostWorkLoad);
+        double prob = Math.pow(p, alpha) * Math.pow(hostWorkLoad,beta);
         return prob;
     }
 
@@ -293,10 +303,10 @@ public class ScheduleServiceDACO {
         if (assignedTasks != null) {
             for (Task task : assignedTasks) {
                 taskWordLoad += task.getGpuNum() * task.getRunTime();
-
             }
         }
-        return 1.0 * taskWordLoad / (hosts.get(hostId).getGpus().size() * 6 * 60);
+        int i = hosts.get(hostId).getGpus().size() * timePeriod;
+        return i / taskWordLoad;
     }
 
 }
