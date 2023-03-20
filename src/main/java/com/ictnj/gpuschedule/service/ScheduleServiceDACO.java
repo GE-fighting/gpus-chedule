@@ -41,7 +41,7 @@ public class ScheduleServiceDACO {
     private double initPheromone = 0.1; // 初始信息素浓度
     private int maxIterations = 10;
     private double w = 0.5;// 多目标函数中目标结果比例
-    private static int timePeriod = 1100;
+    private static int timePeriod = 5000    ;
     private HashMap<Integer, HashMap<Integer, ResultData>> result = new HashMap<Integer, HashMap<Integer, ResultData>>();
 
 
@@ -193,6 +193,7 @@ public class ScheduleServiceDACO {
         }
         //   计算此次蚂蚁的QOS和最短完成时间，得到多目标函数
         double fitness = w * timePeriod / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
+        System.out.println("实验完成的任务数----------------------------------------------------------------------------"+deadlineNUm);
         //将实验的目标函数值存入
         data.setFitness(fitness);
         data.setHostTask(hostTask);
@@ -305,7 +306,7 @@ public class ScheduleServiceDACO {
                 taskWordLoad += task.getGpuNum() * task.getRunTime();
             }
         }
-        return 1.0 * taskWordLoad / (hosts.get(hostId).getGpus().size() * timePeriod);
+        return 1.0 * taskWordLoad;
     }
 
 }

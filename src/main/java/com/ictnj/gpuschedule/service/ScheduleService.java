@@ -327,7 +327,7 @@ public class ScheduleService {
     private int maxIterations = 10;
     private double w = 0.5;// 多目标函数中目标结果比例
 
-    private  static int  timePeriod = 2000;
+    private  static int  timePeriod = 880;
 
     private HashMap<Integer, HashMap<Integer, ResultData>> result = new HashMap<Integer, HashMap<Integer, ResultData>>();
 
@@ -460,6 +460,8 @@ public class ScheduleService {
                 }
 
             }
+
+
             //处理gpu任务调度的数据集
             //HashMap<Integer, List<Task>> gpuTask = new HashMap<Integer, List<Task>>();
             //for (GPU gpu : host.getGpus()) {
@@ -474,6 +476,7 @@ public class ScheduleService {
         }
         //   计算此次蚂蚁的QOS和最短完成时间，得到多目标函数
         double fitness = w * timePeriod / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
+        System.out.println("实验完成的任务数----------------------------------------------------------------------------"+deadlineNUm);
         //将实验的目标函数值存入
         data.setFitness(fitness);
         data.setHostTask(hostTask);

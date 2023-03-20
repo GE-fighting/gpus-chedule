@@ -71,7 +71,7 @@ public class ScheduleController {
 
         LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
 
-        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByAsc(TaskEntity::getArriveTime)).stream().map(taskEntity -> {
+        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByDesc(TaskEntity::getUrgency)).stream().map(taskEntity -> {
             Task task = new Task();
             task.setId(taskEntity.getId());
             task.setRunTime(taskEntity.getRunTime());
@@ -130,7 +130,7 @@ public class ScheduleController {
 
         LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
 
-        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByAsc(TaskEntity::getArriveTime)).stream().map(taskEntity -> {
+        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByDesc(TaskEntity::getUrgency)).stream().map(taskEntity -> {
             Task task = new Task();
             task.setId(taskEntity.getId());
             task.setRunTime(taskEntity.getRunTime());
@@ -189,7 +189,7 @@ public class ScheduleController {
 
         LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
 
-        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByAsc(TaskEntity::getArriveTime)).stream().map(taskEntity -> {
+        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByDesc(TaskEntity::getUrgency)).stream().map(taskEntity -> {
             Task task = new Task();
             task.setId(taskEntity.getId());
             task.setRunTime(taskEntity.getRunTime());
@@ -344,9 +344,11 @@ public class ScheduleController {
                 double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
                 TaskEntity entity = new TaskEntity();
                 entity.setArriveTime(nextArrivalTime);
-                entity.setRunTime(new Random().nextInt(10) * 10 + 5);
+                entity.setRunTime(new Random().nextInt(10) *20 + new Random().nextInt(10) *10+new Random().nextInt(10));
                 entity.setGpuNum(1 + new Random().nextInt(4));
-                entity.setDeadLine((int) (entity.getRunTime() + entity.getArriveTime() + entity.getGpuNum() * 100));
+                entity.setDeadLine((int) (entity.getRunTime() + entity.getArriveTime() + entity.getGpuNum() * 200));
+                double urgency = entity.getRunTime() / (entity.getDeadLine() - entity.getArriveTime());
+                entity.setUrgency(urgency);
                 taskEntityMapper.insert(entity);
             }
         }

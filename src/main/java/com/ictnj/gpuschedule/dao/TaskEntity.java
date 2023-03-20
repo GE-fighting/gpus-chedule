@@ -24,4 +24,5 @@ public class TaskEntity {
     private int gpuNum;
     private int userId;
     private int status;
+    private double urgency;
 }
