@@ -15,7 +15,7 @@ import java.util.Map;
 /**
  * @ClassName FIFOService
  * @Description 先进先出算法
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/17 20:59
  **/
 @Data

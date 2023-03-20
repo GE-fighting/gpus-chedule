@@ -304,7 +304,7 @@ import java.util.List;
 /**
  * @ClassName ScheduleServiceDACO
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/13 19:56
  **/
 public class ScheduleService {
@@ -327,7 +327,7 @@ public class ScheduleService {
     private int maxIterations = 10;
     private double w = 0.5;// 多目标函数中目标结果比例
 
-    private  static int  timePeriod = 1080;
+    private  static int  timePeriod = 2000;
 
     private HashMap<Integer, HashMap<Integer, ResultData>> result = new HashMap<Integer, HashMap<Integer, ResultData>>();
 

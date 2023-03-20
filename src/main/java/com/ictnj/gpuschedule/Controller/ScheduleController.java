@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 /**
  * @ClassName ScheduleController
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/13 22:01
  **/
 @RestController

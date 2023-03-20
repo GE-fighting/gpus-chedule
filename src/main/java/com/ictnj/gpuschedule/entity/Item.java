@@ -3,7 +3,7 @@ package com.ictnj.gpuschedule.entity;
 /**
  * @ClassName Item
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/11 19:23
  **/
 

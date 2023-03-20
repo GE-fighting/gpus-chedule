@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * @ClassName FreeTime
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/10 15:36
  **/
 @Data

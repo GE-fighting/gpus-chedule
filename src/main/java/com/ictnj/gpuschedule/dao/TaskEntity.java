@@ -7,7 +7,7 @@ import lombok.Data;
 /**
  * @ClassName TaskEntity
  * @Description 用户提交任务实体类
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/15 20:57
  **/
 @Data

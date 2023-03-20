@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * @ClassName GpuMapper
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/15 22:40
  **/
 @Mapper

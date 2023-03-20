@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * @ClassName ScheduleServiceDACO
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/13 19:56
  **/
 public class ScheduleServiceDACO {
@@ -41,7 +41,7 @@ public class ScheduleServiceDACO {
     private double initPheromone = 0.1; // 初始信息素浓度
     private int maxIterations = 10;
     private double w = 0.5;// 多目标函数中目标结果比例
-    private static int timePeriod = 800;
+    private static int timePeriod = 1100;
     private HashMap<Integer, HashMap<Integer, ResultData>> result = new HashMap<Integer, HashMap<Integer, ResultData>>();
 
 
@@ -233,7 +233,7 @@ public class ScheduleServiceDACO {
             //所有GPU概率相加
             sum += probabilities[i];
         }
-        //轮盘赌返回要分配的GPU序号
+        //轮盘赌返回要分配的G
         double r = Math.random() * sum;
         sum = 0.0;
         for (int j = 0; j < numHosts; j++) {
@@ -256,7 +256,7 @@ public class ScheduleServiceDACO {
         //2、拿到启发式信息（a、物理机上的面积布局 b、任务的deadline）
         double hostWorkLoad = getHostWorkLoad(j);
         //3、计算概率并返回
-        double prob = Math.pow(p, alpha) * Math.pow(hostWorkLoad,beta);
+        double prob = Math.pow(p, alpha) * Math.pow(1.0 / hostWorkLoad,beta);
         return prob;
     }
 
@@ -305,8 +305,7 @@ public class ScheduleServiceDACO {
                 taskWordLoad += task.getGpuNum() * task.getRunTime();
             }
         }
-        int i = hosts.get(hostId).getGpus().size() * timePeriod;
-        return i / taskWordLoad;
+        return 1.0 * taskWordLoad / (hosts.get(hostId).getGpus().size() * timePeriod);
     }
 
 }

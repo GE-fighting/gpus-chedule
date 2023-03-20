@@ -3,7 +3,7 @@ package com.ictnj.gpuschedule.model.skyline;
 /**
  * @ClassName SkyLinePacking
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/11 19:28
  **/
 
@@ -16,15 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.PriorityBlockingQueue;
 
-/**
- * @Author：WSKH
- * @ClassName：SkyLinePacking
- * @ClassType：
- * @Description：天际线启发式算法求解二维矩形装箱问题
- * @Date：2022/11/6/19:39
- * @Email：1187560563@qq.com
- * @Blog：https://blog.csdn.net/weixin_51545953?type=blog
- */
 public class SkyLinePacking {
 
     // 边界的宽

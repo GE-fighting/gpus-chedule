@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * @ClassName RecordMapper
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/13 21:54
  **/
 @Mapper

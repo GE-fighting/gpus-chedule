@@ -7,7 +7,7 @@ import lombok.Data;
 /**
  * @ClassName Gpu
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/15 22:33
  **/
 @Data

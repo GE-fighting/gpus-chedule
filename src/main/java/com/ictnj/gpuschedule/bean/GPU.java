@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * @ClassName GPU
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/9 16:23
  **/
 @Data

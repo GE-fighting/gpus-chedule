@@ -7,7 +7,7 @@ import java.util.Random;
 /**
  * @ClassName PoissonArrivalService
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/17 15:31
  **/
 @Data

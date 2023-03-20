@@ -3,7 +3,7 @@ package com.ictnj.gpuschedule.util;
 /**
  * @ClassName ReadDataUtil
  * @Description TODO
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/11 19:27
  **/
 
@@ -17,15 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * @Author：WSKH
- * @ClassName：ReadDataUtil
- * @ClassType：
- * @Description：读取数据工具类
- * @Date：2022/11/6/19:39
- * @Email：1187560563@qq.com
- * @Blog：https://blog.csdn.net/weixin_51545953?type=blog
- */
 public class ReadDataUtil {
     public Instance getInstance(String path) throws IOException {
         BufferedReader bufferedReader = new BufferedReader(new FileReader(path));

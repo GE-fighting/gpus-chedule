@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * @ClassName Host
  * @Description 物理机信息
- * @Author zhangjun
+ * @Author zyn
  * @Date 2023/3/10 16:24
  **/
 @Data
