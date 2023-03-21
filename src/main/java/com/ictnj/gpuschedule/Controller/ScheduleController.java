@@ -14,10 +14,7 @@ import com.ictnj.gpuschedule.mapper.GpuMapper;
 import com.ictnj.gpuschedule.mapper.HostMapper;
 import com.ictnj.gpuschedule.mapper.RecordMapper;
 import com.ictnj.gpuschedule.mapper.TaskEntityMapper;
-import com.ictnj.gpuschedule.service.FIFOService;
-import com.ictnj.gpuschedule.service.PoissonArrivalService;
-import com.ictnj.gpuschedule.service.ScheduleService;
-import com.ictnj.gpuschedule.service.ScheduleServiceDACO;
+import com.ictnj.gpuschedule.service.*;
 import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -177,6 +174,83 @@ public class ScheduleController {
                     record.setGpuId(gpuId);
                     record.setHostId(hostId);
                     record.setTaskId(task.getId());
+                    record.setTaskStartTime(task.getStartTime());
+                    record.setTaskDeadLine(task.getDeadLine());
+                    record.setTaskArriveTime(task.getArriveTime());
+                    record.setTaskFinishTime(task.getFinishTime());
+                    record.setTaskGpuNum(task.getGpuNum());
+                    record.setTaskRunTime(task.getRunTime());
+                    recordMapper.insert(record);
+                    if (task.getDeadLine() > task.getFinishTime()) {
+                        //    如果任务在截止时间前完成
+                        resultQosRecord.put(task.getId(), 1);
+                    }
+                    resultWaitRecord.put(task.getId(), task.getStartTime() - task.getArriveTime());
+                }
+            }
+        }
+        //   计算截止日期前的任务数量
+        System.out.println("任务的总数量：" + tasks.size() + " 截止日期前完成的任务数量：" + resultQosRecord.keySet().size());
+        //    任务的平均等待时间
+        for (Integer taskId : resultWaitRecord.keySet()) {
+            waitTime += resultWaitRecord.get(taskId);
+        }
+        System.out.println("调度的平均等待时间-" + waitTime / resultWaitRecord.keySet().size());
+
+    }
+
+    /**
+     * @return void
+     * @Author zyn
+     * @Description //执行DACO调度算法
+     * @Date 22:11 2023/3/13
+     * @Param []
+     **/
+    @RequestMapping("/DACO2")
+    public void scheduleDACO2() {
+        insertTask();
+
+        getHostInfo();
+
+        LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
+
+        List<Task> tasks = taskEntityMapper.selectList(null).stream().map(taskEntity -> {
+            Task task = new Task();
+            task.setId(taskEntity.getId());
+            task.setRunTime(taskEntity.getRunTime());
+            task.setGpuNum(taskEntity.getGpuNum());
+            task.setDeadLine(taskEntity.getDeadLine());
+            task.setArriveTime(taskEntity.getArriveTime());
+            return task;
+        }).collect(Collectors.toList());
+        double[][] pheromone = new double[tasks.size()][hosts.size()];
+        for (int i = 0; i < tasks.size(); i++) {
+            for (int j = 0; j < hosts.size(); j++) {
+                pheromone[i][j] = 1.0;
+            }
+        }
+
+        ScheduleServiceDACO2 scheduleService = new ScheduleServiceDACO2(10, hosts.size(), tasks.size(), pheromone, tasks, hosts);
+        ResultData schedule = scheduleService.getSchedule();
+        HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
+        HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
+        //记录任务的等待时间
+        HashMap<Integer, Double> resultWaitRecord = new HashMap<>();
+        Double waitTime = 0.0;
+        for (int hostId : result.keySet()) {
+            System.out.println("物理机Index-" + hostId);
+            HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
+            for (int gpuId : gpuTaskList.keySet()) {
+                System.out.println("GPU  Index - " + gpuId);
+                List<Task> taskList = gpuTaskList.get(gpuId);
+                System.out.println("Task NUm is -" + taskList.size());
+                for (Task task : taskList) {
+                    //System.out.println("任务编号是 - " + task.getId());
+                    Record record = new Record();
+                    record.setGpuId(gpuId);
+                    record.setHostId(hostId);
+                    record.setTaskId(task.getId());
+                    System.out.println("---------"+task.getStartTime());
                     record.setTaskStartTime(task.getStartTime());
                     record.setTaskDeadLine(task.getDeadLine());
                     record.setTaskArriveTime(task.getArriveTime());

@@ -444,7 +444,7 @@ public class ScheduleService {
                         task.setGpuNum(task1.getGpuNum());
                         if (task1.getDeadLine() > task.getFinishTime()) {
                             //局部信息浓度更新
-                            //pheromone[task1.getId() - 1][host.getId() - 1] *= 1 + q;
+                            pheromone[task1.getId() - 1][host.getId() - 1] *= 1 + q;
                             finishedNumAfterDeadline++;
                         }
                     }
