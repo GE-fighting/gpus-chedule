@@ -105,14 +105,21 @@ public class ScheduleServiceDACO2 {
 
     //物理机上分配的任务清空
     public void clearHostAssignedTask() {
+        HashMap<Integer, HashMap<Integer, Integer>> gpuStartTime = new HashMap<>();
         for (Host host : hosts) {
             host.setAssignedTasks(new ArrayList<>());
-            //HashMap<Integer, List<Task>> gpuTask = new HashMap<>();
-            //for (GPU gpu : host.getGpus()) {
-            //    gpuTask.put(gpu.getId(), new ArrayList<>());
-            //}
-            //gpuAssigned.put(host.getId(), gpuTask);
+            HashMap<Integer, List<Task>> gpuTask = new HashMap<>();
+            for (GPU gpu : host.getGpus()) {
+                gpuTask.put(gpu.getId(), new ArrayList<>());
+            }
+            gpuAssigned.put(host.getId(), gpuTask);
+            HashMap<Integer, Integer> map = new HashMap<>();
+            for (GPU gpu : host.getGpus()) {
+                map.put(gpu.getId(), 0);
+            }
+            gpuStartTime.put(host.getId(), map);
         }
+        this.gpuStartTime = gpuStartTime;
 
     }
 
@@ -158,6 +165,7 @@ public class ScheduleServiceDACO2 {
                     gpuTaskRecord.get(i).add(task);
 
                 }
+                System.out.println("---------"+task.getStartTime());
                 //如果任务完成时间小于deadline，则局部更新信息素s
                 if (finishTime < task.getDeadLine()) {
                     deadlineNUm++;
