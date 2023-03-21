@@ -64,11 +64,14 @@ public class FIFOService {
         for (Task task : tasks) {
             int minId = 1;
             int minTime = Integer.MAX_VALUE;
+
             for (Host host : hosts) {
-                int earlyTime = getEarlyTime(task.getId(), host.getId());
-                if (earlyTime < minTime) {
-                    minTime = earlyTime;
-                    minId = host.getId();
+                if (host.getGpus().size() >= task.getGpuNum()) {
+                    int earlyTime = getEarlyTime(task.getId(), host.getId());
+                    if (earlyTime < minTime) {
+                        minTime = earlyTime;
+                        minId = host.getId();
+                    }
                 }
             }
             assignTaskToHost(task.getId(), minId);
@@ -85,7 +88,7 @@ public class FIFOService {
         ArrayList<Map.Entry<Integer, Integer>> entryArrayList = new ArrayList<>(timeMap.entrySet());
         Collections.sort(entryArrayList, (o1, o2) -> (o1.getValue().compareTo(o2.getValue())));
         //拿到任务所需的GPU卡数m，选取结束任务时间排序后的前M张卡，并选第M张卡为开始时间，更新任务的开始时间和结束时间
-        Task task = tasks.get(taskId-1);
+        Task task = tasks.get(taskId - 1);
         Integer startTime = entryArrayList.get(task.getGpuNum() - 1).getValue();
         Integer finishTime = task.getRunTime() + startTime;
         task.setStartTime(startTime);
@@ -100,7 +103,7 @@ public class FIFOService {
         ArrayList<Map.Entry<Integer, Integer>> entryArrayList = new ArrayList<>(timeMap.entrySet());
         Collections.sort(entryArrayList, (o1, o2) -> (o1.getValue().compareTo(o2.getValue())));
         //拿到任务所需的GPU卡数m，选取结束任务时间排序后的前M张卡，并选第M张卡为开始时间，更新任务的开始时间和结束时间
-        Task task = tasks.get(taskId-1);
+        Task task = tasks.get(taskId - 1);
         Integer startTime = entryArrayList.get(task.getGpuNum() - 1).getValue();
         Integer finishTime = task.getRunTime() + startTime;
         task.setStartTime(startTime);

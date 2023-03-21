@@ -19,7 +19,7 @@ public class Record {
     private Integer gpuType;
     private Integer taskId;
     private Integer taskStartTime;
-    private Integer taskArriveTime;
+    private double taskArriveTime;
     private Integer taskFinishTime;
     private Integer taskRunTime;
     private Integer taskDeadLine;

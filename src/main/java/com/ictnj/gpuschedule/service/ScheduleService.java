@@ -504,27 +504,36 @@ public class ScheduleService {
 
     //给任务分配具体的物理机
     public int assignOneTask(int taskId) {
+        List<Integer> fitHostId = new ArrayList<>();
+        for(int i = 0; i < numHosts; i++){
+            if (hosts.get(i).getGpus().size()>=tasks.get(taskId).getGpuNum()){
+                fitHostId.add(i);
+            }
+        }
+
         //定义任务去这些物理机上的概率
-        double[] probabilities = new double[numHosts];
+        double[] probabilities = new double[fitHostId.size()];
         //可能性总和是0
         double sum = 0.0;
+
         //计算概率
-        for (int i = 0; i < numHosts; i++) {
-            probabilities[i] = computeProbability(taskId, i);
+        for (int i = 0; i < fitHostId.size(); i++) {
+            probabilities[i] = computeProbability(taskId, fitHostId.get(i));
             //所有GPU概率相加
             sum += probabilities[i];
         }
-        //轮盘赌返回要分配的GPU序号
+        //轮盘赌返回要分配的G
         double r = Math.random() * sum;
         sum = 0.0;
-        for (int j = 0; j < numHosts; j++) {
+        for (int j = 0; j < fitHostId.size(); j++) {
             sum += probabilities[j];
             if (sum > r) {
                 // 任务分配给j物理机，更新物理机上工作负载
-                hosts.get(j).getAssignedTasks().add(tasks.get(taskId));
-                return j;
+                hosts.get(fitHostId.get(j)).getAssignedTasks().add(tasks.get(taskId));
+                return fitHostId.get(j);
             }
         }
+        System.out.println("taskId-" + taskId);
         return -1;
     }
 

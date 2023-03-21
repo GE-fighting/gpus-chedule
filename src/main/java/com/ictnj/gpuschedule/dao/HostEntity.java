@@ -16,5 +16,6 @@ public class HostEntity {
     private int id;
     private int gpuType;
     private int gpuNum;
+    private String ipAddr;
 
 }

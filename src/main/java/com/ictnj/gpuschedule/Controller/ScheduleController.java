@@ -70,13 +70,14 @@ public class ScheduleController {
         getHostInfo();
 
         LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
-
-        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByDesc(TaskEntity::getUrgency)).stream().map(taskEntity -> {
+        //queryWrapper.orderByDesc(TaskEntity::getUrgency)
+        List<Task> tasks = taskEntityMapper.selectList(null).stream().map(taskEntity -> {
             Task task = new Task();
             task.setId(taskEntity.getId());
             task.setRunTime(taskEntity.getRunTime());
             task.setGpuNum(taskEntity.getGpuNum());
             task.setDeadLine(taskEntity.getDeadLine());
+            task.setArriveTime(taskEntity.getArriveTime());
             return task;
         }).collect(Collectors.toList());
         FIFOService fifoService = new FIFOService(hosts, tasks);
@@ -84,6 +85,9 @@ public class ScheduleController {
         HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
         //记录任务的Q
         HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
+        //记录任务的等待时间
+        HashMap<Integer, Double> resultWaitRecord = new HashMap<>();
+        Double waitTime = 0.0;
         for (int hostId : result.keySet()) {
             System.out.println("物理机Index-" + hostId);
             HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
@@ -98,6 +102,7 @@ public class ScheduleController {
                     record.setHostId(hostId);
                     record.setTaskId(task.getId());
                     record.setTaskStartTime(task.getStartTime());
+                    record.setTaskArriveTime(task.getArriveTime());
                     record.setTaskDeadLine(task.getDeadLine());
                     record.setTaskFinishTime(task.getFinishTime());
                     record.setTaskGpuNum(task.getGpuNum());
@@ -107,17 +112,23 @@ public class ScheduleController {
                         //    如果任务在截止时间前完成
                         resultQosRecord.put(task.getId(), 1);
                     }
+                    resultWaitRecord.put(task.getId(), task.getStartTime() - task.getArriveTime());
                 }
             }
         }
         //   计算截止日期前的任务数量
         System.out.println("任务的总数量：" + tasks.size() + " 截止日期前完成的任务数量：" + resultQosRecord.keySet().size());
+        //    任务的平均等待时间
+        for (Integer taskId : resultWaitRecord.keySet()) {
+            waitTime += resultWaitRecord.get(taskId);
+        }
+        System.out.println("调度的平均等待时间-" + waitTime / resultWaitRecord.keySet().size());
     }
 
 
     /**
      * @return void
-     * @Author zhangjun
+     * @Author zyn
      * @Description //执行DACO调度算法
      * @Date 22:11 2023/3/13
      * @Param []
@@ -130,12 +141,13 @@ public class ScheduleController {
 
         LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
 
-        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByDesc(TaskEntity::getUrgency)).stream().map(taskEntity -> {
+        List<Task> tasks = taskEntityMapper.selectList(null).stream().map(taskEntity -> {
             Task task = new Task();
             task.setId(taskEntity.getId());
             task.setRunTime(taskEntity.getRunTime());
             task.setGpuNum(taskEntity.getGpuNum());
             task.setDeadLine(taskEntity.getDeadLine());
+            task.setArriveTime(taskEntity.getArriveTime());
             return task;
         }).collect(Collectors.toList());
         double[][] pheromone = new double[tasks.size()][hosts.size()];
@@ -149,6 +161,9 @@ public class ScheduleController {
         ResultData schedule = scheduleService.getSchedule();
         HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
         HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
+        //记录任务的等待时间
+        HashMap<Integer, Double> resultWaitRecord = new HashMap<>();
+        Double waitTime = 0.0;
         for (int hostId : result.keySet()) {
             System.out.println("物理机Index-" + hostId);
             HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
@@ -164,6 +179,7 @@ public class ScheduleController {
                     record.setTaskId(task.getId());
                     record.setTaskStartTime(task.getStartTime());
                     record.setTaskDeadLine(task.getDeadLine());
+                    record.setTaskArriveTime(task.getArriveTime());
                     record.setTaskFinishTime(task.getFinishTime());
                     record.setTaskGpuNum(task.getGpuNum());
                     record.setTaskRunTime(task.getRunTime());
@@ -172,11 +188,17 @@ public class ScheduleController {
                         //    如果任务在截止时间前完成
                         resultQosRecord.put(task.getId(), 1);
                     }
+                    resultWaitRecord.put(task.getId(), task.getStartTime() - task.getArriveTime());
                 }
             }
         }
         //   计算截止日期前的任务数量
         System.out.println("任务的总数量：" + tasks.size() + " 截止日期前完成的任务数量：" + resultQosRecord.keySet().size());
+        //    任务的平均等待时间
+        for (Integer taskId : resultWaitRecord.keySet()) {
+            waitTime += resultWaitRecord.get(taskId);
+        }
+        System.out.println("调度的平均等待时间-" + waitTime / resultWaitRecord.keySet().size());
 
     }
 
@@ -195,6 +217,7 @@ public class ScheduleController {
             task.setRunTime(taskEntity.getRunTime());
             task.setGpuNum(taskEntity.getGpuNum());
             task.setDeadLine(taskEntity.getDeadLine());
+            task.setArriveTime(taskEntity.getArriveTime());
             return task;
         }).collect(Collectors.toList());
         double[][] pheromone = new double[tasks.size()][hosts.size()];
@@ -340,17 +363,38 @@ public class ScheduleController {
         if (taskEntities.size() == 0) {
             PoissonArrivalService poissonArrivalService = new PoissonArrivalService(150);
             //随机产生任务存入数据库
-            for (int i = 0; i < 100; i++) {
+            double minArriveTime = 10000000.0;
+            double maxArriveTime = 0;
+            for (int i = 0; i < 200; i++) {
                 double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
+                if (nextArrivalTime > maxArriveTime) {
+                    maxArriveTime = nextArrivalTime;
+                }
+                if (nextArrivalTime < minArriveTime) {
+                    minArriveTime = nextArrivalTime;
+                }
                 TaskEntity entity = new TaskEntity();
                 entity.setArriveTime(nextArrivalTime);
-                entity.setRunTime(new Random().nextInt(10) *20 + new Random().nextInt(10) *10+new Random().nextInt(10));
+                entity.setRunTime(new Random().nextInt(10) * 20 + new Random().nextInt(10) * 10 + new Random().nextInt(10));
                 entity.setGpuNum(1 + new Random().nextInt(4));
                 entity.setDeadLine((int) (entity.getRunTime() + entity.getArriveTime() + entity.getGpuNum() * 200));
                 double urgency = entity.getRunTime() / (entity.getDeadLine() - entity.getArriveTime());
                 entity.setUrgency(urgency);
                 taskEntityMapper.insert(entity);
             }
+
+            List<TaskEntity> taskEntities1 = taskEntityMapper.selectList(null);
+            int sumRunTime = 0;
+            for (TaskEntity taskEntity : taskEntities1) {
+                LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
+                int aLong = Integer.valueOf(taskEntityMapper.selectCount(queryWrapper.le(TaskEntity::getArriveTime, taskEntity.getArriveTime())).toString());
+                taskEntity.setDeadLine(taskEntity.getDeadLine() + aLong * 5);
+                taskEntityMapper.updateById(taskEntity);
+                sumRunTime+=taskEntity.getRunTime();
+            }
+            System.out.println(sumRunTime/ taskEntities1.size());
+
+            System.out.println("任务的边界" + minArriveTime + "-" + maxArriveTime);
         }
     }
 }

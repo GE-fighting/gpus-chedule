@@ -32,16 +32,15 @@ public class ScheduleServiceDACO {
     private List<Task> tasks; // 任务列表
 
 
-
     private double alpha = 0.5; // alpha参数
     private double beta = 5.0; // beta参数
     private double rho = 0.1; //
-    private double Q = 0.5; // 目标函数最大，全局信息素增量
-    private double q = 0.5;// 任务在截止时间内完成，局部信息素增量
+    private double Q = 0.9; // 目标函数最大，全局信息素增量
+    private double q = 0.1;// 任务在截止时间内完成，局部信息素增量
     private double initPheromone = 0.1; // 初始信息素浓度
     private int maxIterations = 10;
     private double w = 0.5;// 多目标函数中目标结果比例
-    private static int timePeriod = 5000    ;
+    private static int timePeriod = 1500;
     private HashMap<Integer, HashMap<Integer, ResultData>> result = new HashMap<Integer, HashMap<Integer, ResultData>>();
 
 
@@ -94,7 +93,6 @@ public class ScheduleServiceDACO {
         return getMaxFitnessPath(result.get(maxIterations - 1));
 
 
-
     }
 
     //物理机上分配的任务清空
@@ -118,7 +116,13 @@ public class ScheduleServiceDACO {
         for (Host host : hosts) {
             //拿到分配给该物理机的任务数据
             List<Task> assignedTasks = host.getAssignedTasks();
-            System.out.println("----------------分配给物理机的任务数——————————————————" + assignedTasks.size());
+            System.out.println("----------------分配给物理机-"+host.getId()+"的任务数——————————————————" + assignedTasks.size());
+            //计算大致估计timePeriod
+            int workLoad = 0;
+            for (Task task : assignedTasks) {
+                workLoad += task.getGpuNum() * task.getRunTime();
+            }
+            int timePeriod = workLoad / host.getGpus().size()+100;
             //数据加进结果集中
             hostTask.put(host.getId(), assignedTasks);
             //二维填箱处理
@@ -133,7 +137,7 @@ public class ScheduleServiceDACO {
             instance.setItemList(items);
             instance.setRotateEnable(false);
             // 实例化蚁群算法对象
-            ACO aco = new ACO(10, 10, 0.99, 5, 0.5, instance, null);
+            ACO aco = new ACO(10, 50, 0.99, 5, 0.5, instance, null);
             // 调用蚁群算法对象进行求解
             Solution solution = aco.solve();
             List<PlaceItem> placeItemList = solution.getPlaceItemList();
@@ -161,6 +165,7 @@ public class ScheduleServiceDACO {
                         task.setDeadLine(task1.getDeadLine());
                         task.setRunTime(task1.getRunTime());
                         task.setGpuNum(task1.getGpuNum());
+                        task.setArriveTime(task1.getArriveTime());
                         if (task1.getDeadLine() > task.getFinishTime()) {
                             //局部信息浓度更新
                             pheromone[task1.getId() - 1][host.getId() - 1] *= 1 + q;
@@ -192,8 +197,8 @@ public class ScheduleServiceDACO {
             }
         }
         //   计算此次蚂蚁的QOS和最短完成时间，得到多目标函数
-        double fitness = w * timePeriod / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
-        System.out.println("实验完成的任务数----------------------------------------------------------------------------"+deadlineNUm);
+        double fitness = w / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
+        System.out.println("实验完成的任务数----------------------------------------------------------------------------" + deadlineNUm);
         //将实验的目标函数值存入
         data.setFitness(fitness);
         data.setHostTask(hostTask);
@@ -221,31 +226,36 @@ public class ScheduleServiceDACO {
 
     //给任务分配具体的物理机
     public int assignOneTask(int taskId) {
-        if (taskId==90){
-            System.out.println("-----------");
+        List<Integer> fitHostId = new ArrayList<>();
+        for(int i = 0; i < numHosts; i++){
+            if (hosts.get(i).getGpus().size()>=tasks.get(taskId).getGpuNum()){
+                fitHostId.add(i);
+            }
         }
+
         //定义任务去这些物理机上的概率
-        double[] probabilities = new double[numHosts];
+        double[] probabilities = new double[fitHostId.size()];
         //可能性总和是0
         double sum = 0.0;
+
         //计算概率
-        for (int i = 0; i < numHosts; i++) {
-            probabilities[i] = computeProbability(taskId, i);
+        for (int i = 0; i < fitHostId.size(); i++) {
+            probabilities[i] = computeProbability(taskId, fitHostId.get(i));
             //所有GPU概率相加
             sum += probabilities[i];
         }
         //轮盘赌返回要分配的G
         double r = Math.random() * sum;
         sum = 0.0;
-        for (int j = 0; j < numHosts; j++) {
+        for (int j = 0; j < fitHostId.size(); j++) {
             sum += probabilities[j];
             if (sum > r) {
                 // 任务分配给j物理机，更新物理机上工作负载
-                hosts.get(j).getAssignedTasks().add(tasks.get(taskId));
-                return j;
+                hosts.get(fitHostId.get(j)).getAssignedTasks().add(tasks.get(taskId));
+                return fitHostId.get(j);
             }
         }
-        System.out.println("taskId-"+taskId);
+        System.out.println("taskId-" + taskId);
         return -1;
     }
 
@@ -257,7 +267,7 @@ public class ScheduleServiceDACO {
         //2、拿到启发式信息（a、物理机上的面积布局 b、任务的deadline）
         double hostWorkLoad = getHostWorkLoad(j);
         //3、计算概率并返回
-        double prob = Math.pow(p, alpha) * Math.pow(1.0 / hostWorkLoad,beta);
+        double prob = Math.pow(p, alpha) * Math.pow(1.0 / hostWorkLoad, beta);
         return prob;
     }
 
@@ -306,7 +316,7 @@ public class ScheduleServiceDACO {
                 taskWordLoad += task.getGpuNum() * task.getRunTime();
             }
         }
-        return 1.0 * taskWordLoad;
+        return 1.0 * taskWordLoad / hosts.get(hostId).getGpus().size();
     }
 
 }
