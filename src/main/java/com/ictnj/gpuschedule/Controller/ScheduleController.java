@@ -63,7 +63,7 @@ public class ScheduleController {
 
     @RequestMapping("/FCFS")
     public void scheduleFIFO() {
-        insertTask();
+        //insertTask();
         getHostInfo();
 
         LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
@@ -208,13 +208,13 @@ public class ScheduleController {
      **/
     @RequestMapping("/DACO2")
     public void scheduleDACO2() {
-        insertTask();
+
 
         getHostInfo();
 
         LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
 
-        List<Task> tasks = taskEntityMapper.selectList(null).stream().map(taskEntity -> {
+        List<Task> tasks = taskEntityMapper.selectList(queryWrapper.orderByDesc(TaskEntity::getUrgency)).stream().map(taskEntity -> {
             Task task = new Task();
             task.setId(taskEntity.getId());
             task.setRunTime(taskEntity.getRunTime());
@@ -250,7 +250,7 @@ public class ScheduleController {
                     record.setGpuId(gpuId);
                     record.setHostId(hostId);
                     record.setTaskId(task.getId());
-                    System.out.println("---------"+task.getStartTime());
+                    System.out.println("---------" + task.getStartTime());
                     record.setTaskStartTime(task.getStartTime());
                     record.setTaskDeadLine(task.getDeadLine());
                     record.setTaskArriveTime(task.getArriveTime());
@@ -279,7 +279,7 @@ public class ScheduleController {
 
     @RequestMapping("/ACO")
     public void scheduleACO() {
-        insertTask();
+        //insertTask();
 
         getHostInfo();
 
@@ -313,7 +313,6 @@ public class ScheduleController {
                 List<Task> taskList = gpuTaskList.get(gpuId);
                 System.out.println("Task NUm is -" + taskList.size());
                 for (Task task : taskList) {
-                    //System.out.println("任务编号是 - " + task.getId());
                     Record record = new Record();
                     record.setGpuId(gpuId);
                     record.setHostId(hostId);
@@ -432,43 +431,49 @@ public class ScheduleController {
 
 
     //随机插入任务
+    @RequestMapping("/insertTask")
     public void insertTask() {
-        List<TaskEntity> taskEntities = taskEntityMapper.selectList(null);
-        if (taskEntities.size() == 0) {
-            PoissonArrivalService poissonArrivalService = new PoissonArrivalService(150);
-            //随机产生任务存入数据库
-            double minArriveTime = 10000000.0;
-            double maxArriveTime = 0;
-            for (int i = 0; i < 200; i++) {
-                double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
-                if (nextArrivalTime > maxArriveTime) {
-                    maxArriveTime = nextArrivalTime;
-                }
-                if (nextArrivalTime < minArriveTime) {
-                    minArriveTime = nextArrivalTime;
-                }
-                TaskEntity entity = new TaskEntity();
-                entity.setArriveTime(nextArrivalTime);
-                entity.setRunTime(new Random().nextInt(10) * 20 + new Random().nextInt(10) * 10 + new Random().nextInt(10));
-                entity.setGpuNum(1 + new Random().nextInt(4));
-                entity.setDeadLine((int) (entity.getRunTime() + entity.getArriveTime() + entity.getGpuNum() * 200));
-                double urgency = entity.getRunTime() / (entity.getDeadLine() - entity.getArriveTime());
-                entity.setUrgency(urgency);
-                taskEntityMapper.insert(entity);
-            }
-
-            List<TaskEntity> taskEntities1 = taskEntityMapper.selectList(null);
-            int sumRunTime = 0;
-            for (TaskEntity taskEntity : taskEntities1) {
-                LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
-                int aLong = Integer.valueOf(taskEntityMapper.selectCount(queryWrapper.le(TaskEntity::getArriveTime, taskEntity.getArriveTime())).toString());
-                taskEntity.setDeadLine(taskEntity.getDeadLine() + aLong * 5);
-                taskEntityMapper.updateById(taskEntity);
-                sumRunTime+=taskEntity.getRunTime();
-            }
-            System.out.println(sumRunTime/ taskEntities1.size());
-
-            System.out.println("任务的边界" + minArriveTime + "-" + maxArriveTime);
+        //PoissonArrivalService poissonArrivalService = new PoissonArrivalService(150);
+        ////随机产生任务存入数据库
+        //double minArriveTime = 10000000.0;
+        //double maxArriveTime = 0;
+        //for (int i = 0; i < 50; i++) {
+        //    double nextArrivalTime = poissonArrivalService.getNextArrivalTime();
+        //    if (nextArrivalTime > maxArriveTime) {
+        //        maxArriveTime = nextArrivalTime;
+        //    }
+        //    if (nextArrivalTime < minArriveTime) {
+        //        minArriveTime = nextArrivalTime;
+        //    }
+        //    TaskEntity entity = new TaskEntity();
+        //    entity.setArriveTime(nextArrivalTime);
+        //    entity.setRunTime(new Random().nextInt(10) * 20 + new Random().nextInt(10) * 10 + new Random().nextInt(10));
+        //    entity.setGpuNum(1 + new Random().nextInt(4));
+        //    entity.setDeadLine((int) (entity.getRunTime() + entity.getArriveTime() + entity.getGpuNum() * 200));
+        //    double urgency = entity.getRunTime() / (entity.getDeadLine() - entity.getArriveTime());
+        //    entity.setUrgency(urgency);
+        //    taskEntityMapper.insert(entity);
+        //}
+        GenerateTaskService generateTaskService = new GenerateTaskService(taskEntityMapper);
+        generateTaskService.generateTask(30,1,1);
+        generateTaskService.generateTask(30,2,1);
+        generateTaskService.generateTask(30,3,1);
+        generateTaskService.generateTask(30,4,1);
+        generateTaskService.generateTask(30,5,1);
+        generateTaskService.generateTask(20,6,0);
+        generateTaskService.generateTask(20,7,0);
+        List<TaskEntity> taskEntities1 = taskEntityMapper.selectList(null);
+        int sumRunTime = 0;
+        for (TaskEntity taskEntity : taskEntities1) {
+            LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
+            int aLong = Integer.valueOf(taskEntityMapper.selectCount(queryWrapper.le(TaskEntity::getArriveTime, taskEntity.getArriveTime())).toString());
+            taskEntity.setDeadLine(taskEntity.getDeadLine() + aLong * 5);
+            taskEntityMapper.updateById(taskEntity);
+            sumRunTime += taskEntity.getRunTime();
         }
+        System.out.println(sumRunTime / taskEntities1.size());
+        //System.out.println("任务的边界" + minArriveTime + "-" + maxArriveTime);
     }
+
+
 }
