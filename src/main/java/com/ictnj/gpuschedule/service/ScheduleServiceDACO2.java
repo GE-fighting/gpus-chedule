@@ -28,7 +28,7 @@ public class ScheduleServiceDACO2 {
     private double beta = 2.0; // beta参数
     private double rho = 0.1; //
     private double Q = 1; // 目标函数最大，全局信息素增量
-    private double q = 0.5;// 任务在截止时间内完成，局部信息素增量
+    private double q = 1;// 任务在截止时间内完成，局部信息素增量
     private double initPheromone = 0.1; // 初始信息素浓度
     private int maxIterations = 50;
     private double w = 0.5;// 多目标函数中目标结果比例

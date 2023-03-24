@@ -40,44 +40,33 @@ public class GenerateTaskService {
         this.taskEntityMapper = taskEntityMapper;
     }
 
-    public void generateTask(int num, int day, int isWeekday) {
+    public void generateTask(int num, int day) {
         List<TaskEntity> taskEntities = new ArrayList<>();
         for (int i = 0; i < num; i++) {
             TaskEntity taskEntity = new TaskEntity();
             taskEntity.setArriveTime((double) getPoisson(720 + (day - 1) * 1440, (day - 1) * 1440, day * 1440));
             taskEntity.setGpuNum(1 + new Random().nextInt(4));
-            if (isWeekday == 1) {
-                if (i >= 0 && i < 20) {
-                    taskEntity.setRunTime(getPoisson(200, 60, 300));
-                }
-                if (i >= 20 && i < 25) {
-                    taskEntity.setRunTime(getPoisson(300, 300, 560));
-                }
-                if (i >= 25 && i < 29) {
-                    taskEntity.setRunTime(getPoisson(400, 720, 1300));
-                }
-                if (i == 29) {
-                    taskEntity.setRunTime(getPoisson(500, 1440, 3000));
-                }
-            } else {
-                if (i >= 0 && i < 12) {
-                    taskEntity.setRunTime(getPoisson(200, 60, 300));
-                }
-                if (i >= 12 && i < 17) {
-                    taskEntity.setRunTime(getPoisson(300, 300, 720));
-                }
-                if (i >= 17 && i < 19) {
-                    taskEntity.setRunTime(getPoisson(400, 720, 1440));
-                }
-                if (i == 19) {
-                    taskEntity.setRunTime(getPoisson(500, 1440, 3000));
-                }
+            int i1 = (int) (num * 0.6);
+            int i2 = (int) (num * 0.8);
+            int i3 = (int) (num * 0.95);
+            if (i >= 0 && i < i1) {
+                taskEntity.setRunTime(getPoisson(200, 60, 300));
             }
+            if (i >= i1 && i < i2) {
+                taskEntity.setRunTime(getPoisson(300, 300, 560));
+            }
+            if (i >= i2 && i < i3) {
+                taskEntity.setRunTime(getPoisson(400, 720, 1300));
+            }
+            if (i >= i3 && i < num) {
+                taskEntity.setRunTime(getPoisson(500, 1440, 3000));
+            }
+
             taskEntities.add(taskEntity);
 
         }
         for (TaskEntity taskEntity : taskEntities) {
-            taskEntity.setDeadLine((int) (taskEntity.getRunTime() + taskEntity.getArriveTime() + taskEntity.getGpuNum() * 200));
+            taskEntity.setDeadLine((int) (taskEntity.getRunTime()+ taskEntity.getGpuNum() * 200));
             double urgency = taskEntity.getRunTime() / (taskEntity.getDeadLine() - taskEntity.getArriveTime());
             taskEntity.setUrgency(urgency);
             taskEntityMapper.insert(taskEntity);

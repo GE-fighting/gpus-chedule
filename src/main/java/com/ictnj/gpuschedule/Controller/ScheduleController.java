@@ -23,6 +23,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
@@ -85,6 +86,7 @@ public class ScheduleController {
         //记录任务的等待时间
         HashMap<Integer, Double> resultWaitRecord = new HashMap<>();
         Double waitTime = 0.0;
+        int maxFinishTime = 0;
         for (int hostId : result.keySet()) {
             System.out.println("物理机Index-" + hostId);
             HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
@@ -110,6 +112,9 @@ public class ScheduleController {
                         resultQosRecord.put(task.getId(), 1);
                     }
                     resultWaitRecord.put(task.getId(), task.getStartTime() - task.getArriveTime());
+                    if (record.getTaskFinishTime()>maxFinishTime){
+                        maxFinishTime = record.getTaskFinishTime();
+                    }
                 }
             }
         }
@@ -120,6 +125,7 @@ public class ScheduleController {
             waitTime += resultWaitRecord.get(taskId);
         }
         System.out.println("调度的平均等待时间-" + waitTime / resultWaitRecord.keySet().size());
+        System.out.println("任务完成的时间-"+maxFinishTime);
     }
 
 
@@ -132,7 +138,7 @@ public class ScheduleController {
      **/
     @RequestMapping("/DACO")
     public void scheduleDACO() {
-        insertTask();
+
 
         getHostInfo();
 
@@ -237,6 +243,7 @@ public class ScheduleController {
         //记录任务的等待时间
         HashMap<Integer, Double> resultWaitRecord = new HashMap<>();
         Double waitTime = 0.0;
+        int maxFinishTime = 0;
         for (int hostId : result.keySet()) {
             System.out.println("物理机Index-" + hostId);
             HashMap<Integer, List<Task>> gpuTaskList = result.get(hostId);
@@ -263,6 +270,10 @@ public class ScheduleController {
                         resultQosRecord.put(task.getId(), 1);
                     }
                     resultWaitRecord.put(task.getId(), task.getStartTime() - task.getArriveTime());
+
+                    if (record.getTaskFinishTime()>maxFinishTime){
+                        maxFinishTime = record.getTaskFinishTime();
+                    }
                 }
             }
         }
@@ -273,6 +284,7 @@ public class ScheduleController {
             waitTime += resultWaitRecord.get(taskId);
         }
         System.out.println("调度的平均等待时间-" + waitTime / resultWaitRecord.keySet().size());
+        System.out.println("任务完成的时间-"+maxFinishTime);
 
     }
 
@@ -432,7 +444,7 @@ public class ScheduleController {
 
     //随机插入任务
     @RequestMapping("/insertTask")
-    public void insertTask() {
+    public void insertTask(@RequestParam Integer taskNum) {
         //PoissonArrivalService poissonArrivalService = new PoissonArrivalService(150);
         ////随机产生任务存入数据库
         //double minArriveTime = 10000000.0;
@@ -455,19 +467,24 @@ public class ScheduleController {
         //    taskEntityMapper.insert(entity);
         //}
         GenerateTaskService generateTaskService = new GenerateTaskService(taskEntityMapper);
-        generateTaskService.generateTask(30,1,1);
-        generateTaskService.generateTask(30,2,1);
-        generateTaskService.generateTask(30,3,1);
-        generateTaskService.generateTask(30,4,1);
-        generateTaskService.generateTask(30,5,1);
-        generateTaskService.generateTask(20,6,0);
-        generateTaskService.generateTask(20,7,0);
+        for(int i=1;i<=7;i++){
+            if(i<=5&&i>=1){
+                generateTaskService.generateTask((int)(taskNum*0.16),i);
+            }else {
+                generateTaskService.generateTask((int)(taskNum*0.1),i);
+            }
+
+        }
+
+
+
+
         List<TaskEntity> taskEntities1 = taskEntityMapper.selectList(null);
         int sumRunTime = 0;
         for (TaskEntity taskEntity : taskEntities1) {
             LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
             int aLong = Integer.valueOf(taskEntityMapper.selectCount(queryWrapper.le(TaskEntity::getArriveTime, taskEntity.getArriveTime())).toString());
-            taskEntity.setDeadLine(taskEntity.getDeadLine() + aLong * 5);
+            taskEntity.setDeadLine(taskEntity.getDeadLine() + aLong * 10);
             taskEntityMapper.updateById(taskEntity);
             sumRunTime += taskEntity.getRunTime();
         }
