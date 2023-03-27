@@ -25,10 +25,10 @@ public class ScheduleServiceDACO2 {
 
 
     private double alpha = 0.5; // alpha参数
-    private double beta = 2.0; // beta参数
+    private double beta = 1; // beta参数
     private double rho = 0.1; //
-    private double Q = 1; // 目标函数最大，全局信息素增量
-    private double q = 1;// 任务在截止时间内完成，局部信息素增量
+    private double Q = 0.5; // 目标函数最大，全局信息素增量
+    private double q = 0.2;// 任务在截止时间内完成，局部信息素增量
     private double initPheromone = 0.1; // 初始信息素浓度
     private int maxIterations = 50;
     private double w = 0.5;// 多目标函数中目标结果比例
@@ -97,7 +97,6 @@ public class ScheduleServiceDACO2 {
                 //   利用结合天际线启发式的蚁群算法将物理机上的GPU卡合适分配给任务，并返回任务的QOS以及最短完成时间
                 double v = assignTaskToHost(i, antCount);
                 if (v > maxFitness) {
-
                     maxFitness = v;
                     maxAntIndex = antCount;
                 }
@@ -106,7 +105,6 @@ public class ScheduleServiceDACO2 {
             }
             //更新信息素
             updatePheromoneMatrix(pathMatrix_allAnt, maxAntIndex);
-
         }
         //TODO  找到最后一次迭代中多目标函数最大的蚂蚁路径
         return getMaxFitnessPath(result.get(maxIterations - 1));
@@ -188,7 +186,7 @@ public class ScheduleServiceDACO2 {
 
         }
         //   计算此次蚂蚁的QOS和最短完成时间，得到多目标函数
-        double fitness = w / finishedAllMinTime + (1 - w) * (deadlineNUm / numTasks);
+        double fitness =  deadlineNUm*1.0 / numTasks;
         //将实验的目标函数值存入
         data.setFitness(fitness);
         data.setHostTask(hostTask);
@@ -362,10 +360,9 @@ public class ScheduleServiceDACO2 {
         //1、拿到信息素
         double p = this.pheromone[taskIdMapIndex.get(taskId)-1][j];
         //2、拿到启发式信息（a、物理机上的面积布局 b、任务的deadline）
-        double hostWorkLoad = getHostWorkLoad(j);
-        System.out.println();
+        double heuristic = getHeuristicInformation(j,taskId);
         //3、计算概率并返回
-        double prob = Math.pow(p, alpha) * Math.pow(1.0 / hostWorkLoad, beta);
+        double prob = Math.pow(p, alpha) * Math.pow(heuristic, beta);
         return prob;
     }
 
@@ -391,7 +388,7 @@ public class ScheduleServiceDACO2 {
 
     //TODO 一次迭代中多目标函数最大的蚂蚁路径
     public ResultData getMaxFitnessPath(HashMap<Integer, ResultData> result) {
-        int[] schedule = new int[numTasks];
+
         double maxFitness = 0;
         int maxIndex = 0;
         for (Integer i : result.keySet()) {
@@ -405,16 +402,23 @@ public class ScheduleServiceDACO2 {
     }
 
 
-    //    根据面积，计算物理机工作负载
-    public double getHostWorkLoad(int hostId) {
+    //根据物理机负载和gpu匹配度计算启发式信息
+    public double getHeuristicInformation(int hostId,int taskIndex) {
         List<Task> assignedTasks = hosts.get(hostId).getAssignedTasks();
-        int taskWordLoad = 1;
+        int taskWordLoad = 12;
         if (assignedTasks != null) {
             for (Task task : assignedTasks) {
-                taskWordLoad += task.getGpuNum() * task.getRunTime();
+                taskWordLoad += task.getGpuNum() ;
             }
         }
-        return 1.0 * taskWordLoad / hosts.get(hostId).getGpus().size();
+
+        //如果任务所需的gpu卡数 和 任务所需的卡数一致时，增大启发式信息
+
+        double v = hosts.get(hostId).getGpus().size() * 1.0 / taskWordLoad;
+        if (hosts.get(hostId).getGpus().size()==tasks.get(taskIndex).getGpuNum()){
+            v = v*2;
+        }
+        return v;
     }
 
 

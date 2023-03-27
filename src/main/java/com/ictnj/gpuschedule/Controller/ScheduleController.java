@@ -236,7 +236,7 @@ public class ScheduleController {
             }
         }
 
-        ScheduleServiceDACO2 scheduleService = new ScheduleServiceDACO2(10, hosts.size(), tasks.size(), pheromone, tasks, hosts);
+        ScheduleServiceDACO2 scheduleService = new ScheduleServiceDACO2(60, hosts.size(), tasks.size(), pheromone, tasks, hosts);
         ResultData schedule = scheduleService.getSchedule();
         HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
         HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
@@ -484,7 +484,7 @@ public class ScheduleController {
         for (TaskEntity taskEntity : taskEntities1) {
             LambdaQueryWrapper<TaskEntity> queryWrapper = new LambdaQueryWrapper<TaskEntity>();
             int aLong = Integer.valueOf(taskEntityMapper.selectCount(queryWrapper.le(TaskEntity::getArriveTime, taskEntity.getArriveTime())).toString());
-            taskEntity.setDeadLine(taskEntity.getDeadLine() + aLong * 10);
+            taskEntity.setDeadLine(taskEntity.getDeadLine() + aLong * 20);
             taskEntityMapper.updateById(taskEntity);
             sumRunTime += taskEntity.getRunTime();
         }
