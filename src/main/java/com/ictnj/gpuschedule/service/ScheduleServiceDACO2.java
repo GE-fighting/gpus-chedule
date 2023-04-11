@@ -24,10 +24,10 @@ public class ScheduleServiceDACO2 {
     private List<Task> tasks; // 任务列表
 
 
-    private double alpha = 0.5; // alpha参数
-    private double beta = 1; // beta参数
-    private double rho = 0.1; //
-    private double Q = 0.5; // 目标函数最大，全局信息素增量
+    private double alpha = 1.5; // alpha参数
+    private double beta = 3; // beta参数
+    private double rho = 0.2; //
+    private double Q = 0.3; // 目标函数最大，全局信息素增量
     private double q = 0.2;// 任务在截止时间内完成，局部信息素增量
     private double initPheromone = 0.1; // 初始信息素浓度
     private int maxIterations = 50;

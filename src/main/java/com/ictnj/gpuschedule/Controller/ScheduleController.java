@@ -85,6 +85,8 @@ public class ScheduleController {
         HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
         //记录任务的等待时间
         HashMap<Integer, Double> resultWaitRecord = new HashMap<>();
+        //任务延时记录
+        HashMap<Integer, Integer> taskDelayRecord = new HashMap<>();
         Double waitTime = 0.0;
         int maxFinishTime = 0;
         for (int hostId : result.keySet()) {
@@ -107,12 +109,15 @@ public class ScheduleController {
                     record.setTaskGpuNum(task.getGpuNum());
                     record.setTaskRunTime(task.getRunTime());
                     recordMapper.insert(record);
-                    if (task.getDeadLine() > task.getFinishTime()) {
+                    if (task.getDeadLine() >= task.getFinishTime()) {
                         //    如果任务在截止时间前完成
                         resultQosRecord.put(task.getId(), 1);
+                    } else {
+                        taskDelayRecord.put(task.getId(), task.getFinishTime() - task.getDeadLine());
+
                     }
                     resultWaitRecord.put(task.getId(), task.getStartTime() - task.getArriveTime());
-                    if (record.getTaskFinishTime()>maxFinishTime){
+                    if (record.getTaskFinishTime() > maxFinishTime) {
                         maxFinishTime = record.getTaskFinishTime();
                     }
                 }
@@ -125,7 +130,14 @@ public class ScheduleController {
             waitTime += resultWaitRecord.get(taskId);
         }
         System.out.println("调度的平均等待时间-" + waitTime / resultWaitRecord.keySet().size());
-        System.out.println("任务完成的时间-"+maxFinishTime);
+        System.out.println("任务完成的时间-" + maxFinishTime);
+        //    任务平均时延
+        int delayTime = 0;
+        for (Integer taskId : taskDelayRecord.keySet()) {
+            delayTime += taskDelayRecord.get(taskId);
+        }
+        System.out.println("任务总时延：" + delayTime+" 超时任务数：" + taskDelayRecord.keySet().size());
+        System.out.println("任务平均时延-" + delayTime / taskDelayRecord.keySet().size());
     }
 
 
@@ -236,12 +248,14 @@ public class ScheduleController {
             }
         }
 
-        ScheduleServiceDACO2 scheduleService = new ScheduleServiceDACO2(60, hosts.size(), tasks.size(), pheromone, tasks, hosts);
+        ScheduleServiceDACO2 scheduleService = new ScheduleServiceDACO2(50, hosts.size(), tasks.size(), pheromone, tasks, hosts);
         ResultData schedule = scheduleService.getSchedule();
         HashMap<Integer, HashMap<Integer, List<Task>>> result = schedule.getResult();
         HashMap<Integer, Integer> resultQosRecord = new HashMap<>();
         //记录任务的等待时间
         HashMap<Integer, Double> resultWaitRecord = new HashMap<>();
+        //任务延时记录
+        HashMap<Integer, Integer> taskDelayRecord = new HashMap<>();
         Double waitTime = 0.0;
         int maxFinishTime = 0;
         for (int hostId : result.keySet()) {
@@ -265,13 +279,15 @@ public class ScheduleController {
                     record.setTaskGpuNum(task.getGpuNum());
                     record.setTaskRunTime(task.getRunTime());
                     recordMapper.insert(record);
-                    if (task.getDeadLine() > task.getFinishTime()) {
+                    if (task.getDeadLine() >= task.getFinishTime()) {
                         //    如果任务在截止时间前完成
                         resultQosRecord.put(task.getId(), 1);
+                    } else {
+                        taskDelayRecord.put(task.getId(), task.getFinishTime() - task.getDeadLine());
                     }
                     resultWaitRecord.put(task.getId(), task.getStartTime() - task.getArriveTime());
 
-                    if (record.getTaskFinishTime()>maxFinishTime){
+                    if (record.getTaskFinishTime() > maxFinishTime) {
                         maxFinishTime = record.getTaskFinishTime();
                     }
                 }
@@ -284,8 +300,14 @@ public class ScheduleController {
             waitTime += resultWaitRecord.get(taskId);
         }
         System.out.println("调度的平均等待时间-" + waitTime / resultWaitRecord.keySet().size());
-        System.out.println("任务完成的时间-"+maxFinishTime);
-
+        System.out.println("任务完成的时间-" + maxFinishTime);
+        //    任务平均时延
+        int delayTime = 0;
+        for (Integer taskId : taskDelayRecord.keySet()) {
+            delayTime += taskDelayRecord.get(taskId);
+        }
+        System.out.println("任务总时延：" + delayTime+" 超时任务数：" + taskDelayRecord.keySet().size());
+        System.out.println("任务平均时延-" + delayTime / taskDelayRecord.keySet().size());
     }
 
 
@@ -467,16 +489,14 @@ public class ScheduleController {
         //    taskEntityMapper.insert(entity);
         //}
         GenerateTaskService generateTaskService = new GenerateTaskService(taskEntityMapper);
-        for(int i=1;i<=7;i++){
-            if(i<=5&&i>=1){
-                generateTaskService.generateTask((int)(taskNum*0.16),i);
-            }else {
-                generateTaskService.generateTask((int)(taskNum*0.1),i);
+        for (int i = 1; i <= 7; i++) {
+            if (i <= 5 && i >= 1) {
+                generateTaskService.generateTask((int) (taskNum * 0.16), i);
+            } else {
+                generateTaskService.generateTask((int) (taskNum * 0.1), i);
             }
 
         }
-
-
 
 
         List<TaskEntity> taskEntities1 = taskEntityMapper.selectList(null);
